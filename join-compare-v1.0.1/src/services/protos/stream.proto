@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package stream;
+
+service Stream {
+  rpc StartProcessors(ProcessorsInfo) returns (StatisticMsg) {}
+
+  rpc GetStream(stream SMessage) returns (StreamSummary) {}
+
+  rpc GetBDStream(stream BDMessage) returns (StreamSummary) {}
+
+  rpc RunDistLDSketch(stream SMessage) returns (SMessage) {}
+}
+
+message StatisticMsg {
+  int64 network_phase1 = 1;
+  int64 network_phase2 = 2;
+  int64 result_counts = 3;
+  repeated Tuple small_skewkeys = 4;
+  repeated Tuple big_skewkeys = 5;
+}
+
+message StreamSummary { int64 count = 1; }
+
+message Tuple {
+  string key = 1;
+  string value = 2;
+}
+
+message BatchTuple {
+  bool empty = 1;
+  repeated Tuple tuples = 3;
+}
+
+message SMessage {
+  int32 stream_id = 1;
+  repeated string skew_keys = 2;
+  BatchTuple batch_tuples = 3;
+}
+
+message BDMessage {
+  int32 stream_id = 1;
+  repeated string need_keys = 2;
+  repeated string done_keys = 3;
+  BatchTuple batch_tuples = 4;
+  bool close = 5;
+}
+
+message StreamInfo {
+  enum StreamType {
+    LOCAL = 0;
+    REMOTE = 1;
+  }
+
+  int32 stream_id = 1;
+  StreamType type = 2;
+  string server_address = 3;
+}
+
+message TableReaderInfo {
+  enum RouterType {
+    HASH = 0;
+    AVERAGE = 1;
+    NATIVE = 2;
+    BALANCE = 3;
+    FLOWSMALL = 4;
+    FLOWBIG = 5;
+    LDSKETCH = 6;
+  }
+  enum TableReaderType {
+    SMALL = 0;
+    BIG = 1;
+  }
+
+  int32 id = 1;
+  TableReaderType tr_type = 2;
+  string file_name = 3;
+  RouterType router_type = 4;
+  repeated StreamInfo output_infos = 5;
+}
+
+message HashJoinerInfo {
+  enum HJType{
+    BASE = 0;
+    PNR = 1;
+    PRPD = 2;
+    BNR = 3;
+    FLOWJOIN = 4;
+  }
+
+  HJType type = 1;
+  repeated StreamInfo big_infos = 2;
+  repeated StreamInfo small_infos = 3;
+  repeated StreamInfo bd_infos = 4;
+  repeated StreamInfo output_infos = 5;
+}
+
+message SFRInfo {
+  int32 n = 1;
+  int32 rows = 2;
+  int32 cols = 3;
+}
+
+message ProcessorsInfo {
+  SFRInfo sfr_info = 1;
+  repeated TableReaderInfo tablereader_infos = 2;
+  repeated HashJoinerInfo hashjoiner_infos = 3;
+}
